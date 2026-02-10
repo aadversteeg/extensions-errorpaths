@@ -5,8 +5,15 @@ using Xunit;
 
 namespace UnitTests.Extensions.ErrorPaths.AspNetCore
 {
+    [Collection("HttpMapping")]
     public class ErrorHttpExtensionsTests
     {
+        public ErrorHttpExtensionsTests()
+        {
+            // Clear custom mappings before each test to avoid static state pollution
+            ErrorCodeHttpMapping.ClearCustomMappings();
+        }
+
         [Fact(DisplayName = "HE-001: ToProblemDetails should set correct type URN")]
         public void HE001()
         {

@@ -6,6 +6,7 @@ using Xunit;
 
 namespace UnitTests.Extensions.ErrorPaths.AspNetCore
 {
+    [Collection("HttpMapping")]
     public class ErrorCodeHttpMappingTests
     {
         public ErrorCodeHttpMappingTests()
