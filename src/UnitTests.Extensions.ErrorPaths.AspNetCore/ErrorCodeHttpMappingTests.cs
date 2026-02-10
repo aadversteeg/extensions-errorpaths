@@ -217,5 +217,50 @@ namespace UnitTests.Extensions.ErrorPaths.AspNetCore
             // assert
             status.Should().Be(HttpStatusCode.InternalServerError);
         }
+
+        [Fact(DisplayName = "HM-019: Concurrent reads and writes should not throw")]
+        public async System.Threading.Tasks.Task HM019()
+        {
+            // arrange
+            var exceptions = new System.Collections.Concurrent.ConcurrentBag<System.Exception>();
+            var barrier = new System.Threading.Barrier(participantCount: 10);
+
+            // act
+            var tasks = new System.Threading.Tasks.Task[10];
+            for (var i = 0; i < 10; i++)
+            {
+                var index = i;
+                tasks[i] = System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        barrier.SignalAndWait();
+                        for (var j = 0; j < 100; j++)
+                        {
+                            if (index % 2 == 0)
+                            {
+                                ErrorCodeHttpMapping.Register(
+                                    new ErrorCode($"Concurrent.Test{index}"),
+                                    HttpStatusCode.BadRequest);
+                            }
+                            else
+                            {
+                                var code = new ErrorCode($"Concurrent.Test{index}");
+                                _ = code.ToHttpStatusCode();
+                            }
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        exceptions.Add(ex);
+                    }
+                });
+            }
+
+            await System.Threading.Tasks.Task.WhenAll(tasks);
+
+            // assert
+            exceptions.Should().BeEmpty();
+        }
     }
 }

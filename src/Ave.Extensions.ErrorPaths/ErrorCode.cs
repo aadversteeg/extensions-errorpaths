@@ -121,7 +121,9 @@ namespace Ave.Extensions.ErrorPaths
                 return true;
             }
 
-            return _value.StartsWith(ancestor._value + Separator, StringComparison.Ordinal);
+            return _value.Length > ancestor._value.Length
+                && _value[ancestor._value.Length] == Separator
+                && _value.StartsWith(ancestor._value, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -131,7 +133,7 @@ namespace Ave.Extensions.ErrorPaths
         /// <param name="child">The child segment to append.</param>
         /// <returns>A new error code representing the combined path.</returns>
         /// <exception cref="ArgumentNullException">Thrown when child is null.</exception>
-        /// <exception cref="ArgumentException">Thrown when child is empty or whitespace.</exception>
+        /// <exception cref="ArgumentException">Thrown when child is empty, whitespace, or contains the separator character.</exception>
         public static ErrorCode operator /(ErrorCode parent, string child)
         {
             if (child == null)
@@ -142,6 +144,11 @@ namespace Ave.Extensions.ErrorPaths
             if (string.IsNullOrWhiteSpace(child))
             {
                 throw new ArgumentException("Child segment cannot be empty or whitespace.", nameof(child));
+            }
+
+            if (child.IndexOf(Separator) >= 0)
+            {
+                throw new ArgumentException($"Child segment cannot contain the separator character '{Separator}'. Use chained / operators to add multiple segments.", nameof(child));
             }
 
             if (string.IsNullOrEmpty(parent._value))

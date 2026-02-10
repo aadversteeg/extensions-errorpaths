@@ -298,5 +298,19 @@ namespace UnitTests.Extensions.ErrorPaths.Serialization
             deserialized.Inner!.Value.Metadata!["host"].Should().Be("localhost");
             ((long)deserialized.Inner!.Value.Metadata["port"]).Should().Be(5432);
         }
+
+        [Fact(DisplayName = "EJ-019: Deserialize object missing both code and message should return default Error")]
+        public void EJ019()
+        {
+            // arrange
+            var json = "{\"someField\":\"someValue\"}";
+
+            // act
+            var error = JsonSerializer.Deserialize<Error>(json, _options);
+
+            // assert
+            error.Code.Value.Should().Be(string.Empty);
+            error.Message.Should().Be(string.Empty);
+        }
     }
 }

@@ -14,7 +14,11 @@ namespace Ave.Extensions.ErrorPaths
         private readonly ErrorCode _code;
         private readonly string _message;
         private readonly IReadOnlyDictionary<string, object>? _metadata;
-        private readonly object? _inner; // Boxed Error for chaining
+        // Inner error is stored as a boxed object because a readonly struct cannot contain
+        // a field of its own type (even as Nullable<T>). This incurs a small boxing/unboxing
+        // cost on each access to the Inner property, which is an acceptable trade-off for
+        // enabling error chaining on a value type.
+        private readonly object? _inner;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Error"/> struct.
@@ -166,9 +170,12 @@ namespace Ave.Extensions.ErrorPaths
 
         /// <summary>
         /// Determines whether this instance equals another Error instance.
+        /// Equality is based on <see cref="Code"/> and <see cref="Message"/> only.
+        /// <see cref="Metadata"/> and <see cref="Inner"/> are intentionally excluded because
+        /// errors are primarily identified by their code and message, and metadata is supplemental context.
         /// </summary>
         /// <param name="other">The Error to compare with.</param>
-        /// <returns>true if the instances are equal; otherwise, false.</returns>
+        /// <returns>true if the instances have the same code and message; otherwise, false.</returns>
         public bool Equals(Error other)
         {
             return _code.Equals(other._code)

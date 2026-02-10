@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 
@@ -8,7 +9,7 @@ namespace Ave.Extensions.ErrorPaths.AspNetCore
     /// </summary>
     public static class ErrorCodeHttpMapping
     {
-        private static readonly Dictionary<string, HttpStatusCode> _customMappings = new Dictionary<string, HttpStatusCode>();
+        private static readonly ConcurrentDictionary<string, HttpStatusCode> _customMappings = new ConcurrentDictionary<string, HttpStatusCode>();
 
         private static readonly Dictionary<string, HttpStatusCode> _defaultMappings = new Dictionary<string, HttpStatusCode>
         {

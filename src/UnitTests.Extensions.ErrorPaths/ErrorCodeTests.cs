@@ -405,5 +405,45 @@ namespace UnitTests.Extensions.ErrorPaths
             // act & assert
             ErrorCode.Separator.Should().Be('.');
         }
+
+        [Fact(DisplayName = "EC-031: Default ErrorCode Depth should return 0")]
+        public void EC031()
+        {
+            // arrange
+            var code = default(ErrorCode);
+
+            // act
+            var depth = code.Depth;
+
+            // assert
+            depth.Should().Be(0);
+        }
+
+        [Fact(DisplayName = "EC-032: Default ErrorCode Leaf should return empty string")]
+        public void EC032()
+        {
+            // arrange
+            var code = default(ErrorCode);
+
+            // act
+            var leaf = code.Leaf;
+
+            // assert
+            leaf.Should().Be(string.Empty);
+        }
+
+        [Fact(DisplayName = "EC-033: Division operator with child containing separator should throw ArgumentException")]
+        public void EC033()
+        {
+            // arrange
+            var parent = new ErrorCode("Validation");
+
+            // act
+            var act = () => parent / "Required.Email";
+
+            // assert
+            act.Should().Throw<ArgumentException>()
+                .WithParameterName("child");
+        }
     }
 }

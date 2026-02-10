@@ -17,8 +17,16 @@ namespace Ave.Extensions.ErrorPaths.Serialization
         {
             options = options ?? new JsonSerializerOptions();
 
-            options.Converters.Add(new ErrorCodeJsonConverter());
-            options.Converters.Add(new ErrorJsonConverter());
+            var hasErrorCodeConverter = false;
+            var hasErrorConverter = false;
+            foreach (var converter in options.Converters)
+            {
+                if (converter is ErrorCodeJsonConverter) hasErrorCodeConverter = true;
+                if (converter is ErrorJsonConverter) hasErrorConverter = true;
+            }
+
+            if (!hasErrorCodeConverter) options.Converters.Add(new ErrorCodeJsonConverter());
+            if (!hasErrorConverter) options.Converters.Add(new ErrorJsonConverter());
 
             return options;
         }

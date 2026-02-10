@@ -131,7 +131,7 @@ namespace UnitTests.Extensions.ErrorPaths.AspNetCore
             status.Should().Be(403);
         }
 
-        [Fact(DisplayName = "HE-010: ToHttpResult should return IResult")]
+        [Fact(DisplayName = "HE-010: ToHttpResult should return ProblemHttpResult with correct status")]
         public void HE010()
         {
             // arrange
@@ -142,6 +142,9 @@ namespace UnitTests.Extensions.ErrorPaths.AspNetCore
 
             // assert
             result.Should().NotBeNull();
+            result.Should().BeAssignableTo<Microsoft.AspNetCore.Http.IStatusCodeHttpResult>();
+            var statusCodeResult = (Microsoft.AspNetCore.Http.IStatusCodeHttpResult)result;
+            statusCodeResult.StatusCode.Should().Be(400);
         }
 
         [Fact(DisplayName = "HE-011: Different error codes should produce different titles")]

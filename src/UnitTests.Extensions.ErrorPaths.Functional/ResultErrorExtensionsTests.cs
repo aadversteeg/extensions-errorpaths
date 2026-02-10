@@ -172,5 +172,47 @@ namespace UnitTests.Extensions.ErrorPaths.Functional
             mapped.IsSuccess.Should().BeTrue();
             mapped.Value.Should().Be(42);
         }
+
+        [Fact(DisplayName = "REE-011: Async MapError on Task with null sync function should throw ArgumentNullException")]
+        public async Task REE011()
+        {
+            // arrange
+            var result = Task.FromResult(Result<int, Error>.Success(42));
+
+            // act
+            var act = async () => await result.MapError((Func<Error, Error>)null!);
+
+            // assert
+            await act.Should().ThrowAsync<ArgumentNullException>()
+                .WithParameterName("mapError");
+        }
+
+        [Fact(DisplayName = "REE-012: MapError with null async function should throw ArgumentNullException")]
+        public async Task REE012()
+        {
+            // arrange
+            var result = Result<int, Error>.Success(42);
+
+            // act
+            var act = async () => await result.MapError((Func<Error, Task<Error>>)null!);
+
+            // assert
+            await act.Should().ThrowAsync<ArgumentNullException>()
+                .WithParameterName("mapError");
+        }
+
+        [Fact(DisplayName = "REE-013: Async MapError on Task with null async function should throw ArgumentNullException")]
+        public async Task REE013()
+        {
+            // arrange
+            var result = Task.FromResult(Result<int, Error>.Success(42));
+
+            // act
+            var act = async () => await result.MapError((Func<Error, Task<Error>>)null!);
+
+            // assert
+            await act.Should().ThrowAsync<ArgumentNullException>()
+                .WithParameterName("mapError");
+        }
     }
 }

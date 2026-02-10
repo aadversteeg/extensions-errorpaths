@@ -296,5 +296,18 @@ namespace UnitTests.Extensions.ErrorPaths
             withMeta.Inner.Should().NotBeNull();
             withMeta.Inner!.Value.Code.Value.Should().Be("IO");
         }
+
+        [Fact(DisplayName = "ERR-021: Default Error Is should return false")]
+        public void ERR021()
+        {
+            // arrange
+            var error = default(Error);
+
+            // act
+            var result = error.Is(new ErrorCode("Validation"));
+
+            // assert
+            result.Should().BeFalse();
+        }
     }
 }
