@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <Description>Integration between Ave.Extensions.ErrorPaths and Ave.Extensions.Functional Result types</Description>
+    <PackageTags>errors;errorcode;result;functional;extensions</PackageTags>
+    <Nullable>annotations</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ave.Extensions.Functional.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ave.Extensions.ErrorPaths\Ave.Extensions.ErrorPaths.csproj" />
+  </ItemGroup>
+
+</Project>

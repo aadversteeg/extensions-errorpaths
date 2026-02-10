@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
+    <Description>JSON serialization support for Ave.Extensions.ErrorPaths using System.Text.Json</Description>
+    <PackageTags>errors;errorcode;json;serialization;systemtextjson</PackageTags>
+    <Nullable>annotations</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ave.Extensions.ErrorPaths\Ave.Extensions.ErrorPaths.csproj" />
+  </ItemGroup>
+
+</Project>
