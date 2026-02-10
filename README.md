@@ -64,6 +64,7 @@ Your API layer doesn't need to know whether the error came from `UserService`, `
 | `Ave.Extensions.ErrorPaths.Functional` | Integration with Ave.Extensions.Functional Result types | netstandard2.0 |
 | `Ave.Extensions.ErrorPaths.Serialization` | JSON serialization with System.Text.Json | netstandard2.0 |
 | `Ave.Extensions.ErrorPaths.AspNetCore` | ASP.NET Core integration (ProblemDetails, HTTP status) | net10.0 |
+| `Ave.Extensions.ErrorPaths.FluentAssertions` | FluentAssertions extensions for Error and ErrorCode types | netstandard2.0 |
 
 ## Installation
 
@@ -223,6 +224,40 @@ var problemDetails = error.ToProblemDetails();
 //   "entity": "User",
 //   "id": 42
 // }
+```
+
+## FluentAssertions Extensions
+
+```csharp
+using Ave.Extensions.ErrorPaths;
+using Ave.Extensions.ErrorPaths.FluentAssertions;
+
+var error = Errors.Required("email");
+
+// Assert on error code and message
+error.Should().HaveCode(ErrorCodes.Validation.Required);
+error.Should().HaveMessage("The field 'email' is required.");
+
+// Match against ancestor codes
+error.Should().MatchCode(ErrorCodes.Validation._);
+error.Should().NotMatchCode(ErrorCodes.NotFound._);
+
+// Assert on metadata
+error.Should().HaveMetadata();
+error.Should().HaveMetadataEntry("field", "email");
+
+// Assert on inner errors with chaining
+var outer = innerError.Wrap(ErrorCodes.Internal.Unexpected, "Operation failed.");
+outer.Should().HaveInnerError()
+    .Which.Should().HaveCode(ErrorCodes.IO.Network);
+
+// Assert on ErrorCode properties
+var code = new ErrorCode("Validation.Required");
+code.Should().HaveValue("Validation.Required");
+code.Should().BeChildOf(new ErrorCode("Validation"));
+code.Should().HaveDepth(2);
+code.Should().HaveLeaf("Required");
+code.Should().HaveParent(new ErrorCode("Validation"));
 ```
 
 ## Well-Known Error Codes
