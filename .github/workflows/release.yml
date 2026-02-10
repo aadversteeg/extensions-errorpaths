@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
 
 permissions:
   contents: write
@@ -21,13 +21,11 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
+          dotnet-version: '10.0.x'
 
       - name: Extract version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
         run: dotnet restore src/extensions-errorpaths.sln
@@ -40,12 +38,6 @@ jobs:
 
       - name: Pack
         run: dotnet pack src/extensions-errorpaths.sln --no-build --configuration Release /p:Version=${{ steps.get_version.outputs.VERSION }} --output ./packages
-
-      - name: Debug Package Output
-        run: |
-          echo "Generated NuGet packages:"
-          ls -la ./packages/
-          echo "Package count: $(ls -1 ./packages/*.nupkg 2>/dev/null | wc -l)"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
