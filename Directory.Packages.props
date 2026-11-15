@@ -6,7 +6,7 @@
   <ItemGroup>
     <!-- Microsoft -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.404" />
 
     <!-- System.Text.Json for serialization package -->
     <PackageVersion Include="System.Text.Json" Version="8.0.5" />
