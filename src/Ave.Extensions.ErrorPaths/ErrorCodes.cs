@@ -7,6 +7,12 @@ namespace Ave.Extensions.ErrorPaths
     public static class ErrorCodes
     {
         /// <summary>
+        /// The code of an error that collects several errors into one; see <see cref="Errors.Aggregate"/>.
+        /// The collected errors are available through <see cref="Error.Parts"/>.
+        /// </summary>
+        public static readonly ErrorCode Aggregate = new ErrorCode("Aggregate");
+
+        /// <summary>
         /// Validation error codes for input validation failures.
         /// </summary>
         public static class Validation

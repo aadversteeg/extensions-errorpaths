@@ -102,6 +102,14 @@ namespace Ave.Extensions.ErrorPaths.AspNetCore
         }
 
         /// <summary>
+        /// Looks up a custom mapping registered for exactly this code, without walking up the hierarchy.
+        /// </summary>
+        internal static bool TryGetCustomMapping(ErrorCode code, out HttpStatusCode statusCode)
+        {
+            return _customMappings.TryGetValue(code.Value, out statusCode);
+        }
+
+        /// <summary>
         /// Gets the HTTP status code as an integer for the specified error code.
         /// </summary>
         /// <param name="code">The error code to map.</param>

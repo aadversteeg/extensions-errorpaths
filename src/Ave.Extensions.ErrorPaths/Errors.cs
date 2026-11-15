@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Ave.Extensions.ErrorPaths
 {
@@ -146,6 +148,42 @@ namespace Ave.Extensions.ErrorPaths
         public static Error From(ErrorCode code, string message)
         {
             return new Error(code, message);
+        }
+
+        /// <summary>
+        /// Collects one or more errors into one error.
+        /// <list type="bullet">
+        /// <item><description>A single error is returned unchanged, so its own code stays visible.</description></item>
+        /// <item><description>Several errors become one error with code <see cref="ErrorCodes.Aggregate"/>. Its message counts and
+        /// lists the messages (<c>"2 errors: first; second"</c>) and <see cref="Error.Parts"/> returns the errors.</description></item>
+        /// <item><description>An aggregate among the errors is replaced by its parts, so an aggregate is always one level deep.</description></item>
+        /// </list>
+        /// The order of the errors is kept.
+        /// </summary>
+        /// <param name="errors">The errors to collect; at least one.</param>
+        /// <returns>The single error, or the aggregate.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when errors is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when errors is empty: aggregating nothing is a programming error.</exception>
+        public static Error Aggregate(IReadOnlyList<Error> errors)
+        {
+            if (errors == null)
+            {
+                throw new ArgumentNullException(nameof(errors));
+            }
+
+            if (errors.Count == 0)
+            {
+                throw new ArgumentException("At least one error is required to create an aggregate.", nameof(errors));
+            }
+
+            if (errors.Count == 1)
+            {
+                return errors[0];
+            }
+
+            var parts = errors.SelectMany(error => error.Parts()).ToArray();
+            var message = $"{parts.Length} errors: " + string.Join("; ", parts.Select(part => part.Message));
+            return new Error(ErrorCodes.Aggregate, message, null, null, Array.AsReadOnly(parts));
         }
     }
 }

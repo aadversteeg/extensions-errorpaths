@@ -7,6 +7,8 @@ namespace Ave.Extensions.ErrorPaths.Serialization
 {
     /// <summary>
     /// JSON converter for <see cref="Error"/> that serializes as an object with code, message, metadata, and inner properties.
+    /// An aggregate error (see <see cref="Errors.Aggregate"/>) also gets an errors property holding its parts, and is read
+    /// back as an aggregate with the same parts.
     /// </summary>
     public class ErrorJsonConverter : JsonConverter<Error>
     {
@@ -14,6 +16,7 @@ namespace Ave.Extensions.ErrorPaths.Serialization
         private const string MessagePropertyName = "message";
         private const string MetadataPropertyName = "metadata";
         private const string InnerPropertyName = "inner";
+        private const string ErrorsPropertyName = "errors";
 
         /// <summary>
         /// Reads an <see cref="Error"/> from JSON.
@@ -39,6 +42,7 @@ namespace Ave.Extensions.ErrorPaths.Serialization
             string? message = null;
             Dictionary<string, object>? metadata = null;
             Error? inner = null;
+            List<Error>? parts = null;
 
             while (reader.Read())
             {
@@ -79,6 +83,13 @@ namespace Ave.Extensions.ErrorPaths.Serialization
                         }
                         break;
 
+                    case ErrorsPropertyName:
+                        if (reader.TokenType != JsonTokenType.Null)
+                        {
+                            parts = ReadParts(ref reader, typeToConvert, options);
+                        }
+                        break;
+
                     default:
                         reader.Skip();
                         break;
@@ -88,6 +99,21 @@ namespace Ave.Extensions.ErrorPaths.Serialization
             if (string.IsNullOrEmpty(code) || message == null)
             {
                 return default;
+            }
+
+            // The parts define an aggregate: rebuild it from them, so that Parts() works after a round trip.
+            // An errors property on any other code is not ours to interpret and is ignored.
+            if (parts != null && parts.Count > 0 && code == ErrorCodes.Aggregate.Value)
+            {
+                var aggregate = Errors.Aggregate(parts);
+                if (metadata != null)
+                {
+                    foreach (var kvp in metadata)
+                    {
+                        aggregate = aggregate.With(kvp.Key, kvp.Value);
+                    }
+                }
+                return aggregate;
             }
 
             return new Error(
@@ -128,7 +154,39 @@ namespace Ave.Extensions.ErrorPaths.Serialization
                 Write(writer, value.Inner.Value, options);
             }
 
+            var parts = value.Parts();
+            if (parts.Count > 1)
+            {
+                writer.WritePropertyName(ErrorsPropertyName);
+                writer.WriteStartArray();
+                foreach (var part in parts)
+                {
+                    Write(writer, part, options);
+                }
+                writer.WriteEndArray();
+            }
+
             writer.WriteEndObject();
+        }
+
+        private List<Error> ReadParts(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartArray)
+            {
+                throw new JsonException($"Expected start of array for errors, but got {reader.TokenType}.");
+            }
+
+            var parts = new List<Error>();
+            while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+            {
+                var part = Read(ref reader, typeToConvert, options);
+                if (!string.IsNullOrEmpty(part.Code.Value))
+                {
+                    parts.Add(part);
+                }
+            }
+
+            return parts;
         }
 
         private static Dictionary<string, object>? ReadMetadata(ref Utf8JsonReader reader, JsonSerializerOptions options)

@@ -19,6 +19,8 @@ namespace Ave.Extensions.ErrorPaths
         // cost on each access to the Inner property, which is an acceptable trade-off for
         // enabling error chaining on a value type.
         private readonly object? _inner;
+        // The errors inside an aggregate (see Errors.Aggregate); null for every other error.
+        private readonly IReadOnlyList<Error>? _parts;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Error"/> struct.
@@ -52,6 +54,11 @@ namespace Ave.Extensions.ErrorPaths
         /// <param name="inner">Optional inner error for chaining.</param>
         /// <exception cref="ArgumentNullException">Thrown when message is null.</exception>
         public Error(ErrorCode code, string message, IReadOnlyDictionary<string, object>? metadata, Error? inner)
+            : this(code, message, metadata, inner, null)
+        {
+        }
+
+        internal Error(ErrorCode code, string message, IReadOnlyDictionary<string, object>? metadata, Error? inner, IReadOnlyList<Error>? parts)
         {
             if (message == null)
             {
@@ -62,6 +69,7 @@ namespace Ave.Extensions.ErrorPaths
             _message = message;
             _metadata = metadata;
             _inner = inner.HasValue ? (object)inner.Value : null;
+            _parts = parts;
         }
 
         /// <summary>
@@ -129,7 +137,17 @@ namespace Ave.Extensions.ErrorPaths
             }
             newMetadata[key] = value;
 
-            return new Error(_code, _message, newMetadata, Inner);
+            return new Error(_code, _message, newMetadata, Inner, _parts);
+        }
+
+        /// <summary>
+        /// Gets the errors this error consists of. For an aggregate created by <see cref="Errors.Aggregate"/> these are
+        /// the collected errors, in the order they were given; for any other error it is a list holding only this error.
+        /// </summary>
+        /// <returns>The parts of this error; never empty.</returns>
+        public IReadOnlyList<Error> Parts()
+        {
+            return _parts ?? new[] { this };
         }
 
         /// <summary>

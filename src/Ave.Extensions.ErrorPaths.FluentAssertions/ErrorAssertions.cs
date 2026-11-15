@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Primitives;
@@ -115,6 +117,46 @@ namespace Ave.Extensions.ErrorPaths.FluentAssertions
                     Subject.Inner.HasValue ? Subject.Inner.Value.Code.Value : "", Subject.Inner.HasValue ? Subject.Inner.Value.Message : "");
 
             return new AndConstraint<ErrorAssertions>(this);
+        }
+
+        /// <summary>
+        /// Asserts that the error is an aggregate created by <see cref="Errors.Aggregate"/>: it has code
+        /// <see cref="ErrorCodes.Aggregate"/> and more than one part. Use <c>Which</c> to continue on the parts.
+        /// </summary>
+        /// <param name="because">A formatted phrase explaining why the assertion is needed.</param>
+        /// <param name="becauseArgs">Zero or more objects to format using the placeholders in <paramref name="because"/>.</param>
+        /// <returns>A constraint whose <c>Which</c> is the list of parts.</returns>
+        public AndWhichConstraint<ErrorAssertions, IReadOnlyList<Error>> BeAggregate(string because = "", params object[] becauseArgs)
+        {
+            var parts = Subject.Parts();
+            Execute.Assertion
+                .BecauseOf(because, becauseArgs)
+                .ForCondition(Subject.Code.Equals(ErrorCodes.Aggregate) && parts.Count > 1)
+                .FailWith("Expected {context:Error} to be an aggregate of several errors{reason}, but found [{0}] {1}.",
+                    Subject.Code.Value, Subject.Message);
+
+            return new AndWhichConstraint<ErrorAssertions, IReadOnlyList<Error>>(this, parts);
+        }
+
+        /// <summary>
+        /// Asserts that one of the parts of the error has exactly the given code. For an error that is not an aggregate,
+        /// the only part is the error itself. Use <c>Which</c> to continue on the first matching part.
+        /// </summary>
+        /// <param name="expected">The code of the part to find.</param>
+        /// <param name="because">A formatted phrase explaining why the assertion is needed.</param>
+        /// <param name="becauseArgs">Zero or more objects to format using the placeholders in <paramref name="because"/>.</param>
+        /// <returns>A constraint whose <c>Which</c> is the first part with the code.</returns>
+        public AndWhichConstraint<ErrorAssertions, Error> HavePartWithCode(ErrorCode expected, string because = "", params object[] becauseArgs)
+        {
+            var parts = Subject.Parts();
+            var match = parts.Where(part => part.Code.Equals(expected)).Select(part => (Error?)part).FirstOrDefault();
+            Execute.Assertion
+                .BecauseOf(because, becauseArgs)
+                .ForCondition(match.HasValue)
+                .FailWith("Expected {context:Error} to have a part with code {0}{reason}, but found parts with codes {1}.",
+                    expected.Value, parts.Select(part => part.Code.Value).ToList());
+
+            return new AndWhichConstraint<ErrorAssertions, Error>(this, match.GetValueOrDefault());
         }
     }
 }
