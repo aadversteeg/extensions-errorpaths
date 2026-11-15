@@ -126,6 +126,28 @@ var outerError = innerError.Wrap(ErrorCodes.IO.Database, "Failed to connect to d
 outerError.Inner.Value.Message; // "Connection refused."
 ```
 
+### Collecting Several Errors
+
+`Errors.Aggregate` turns a list of errors into one error, for example when a whole form or document
+is validated and every problem should be reported at once.
+
+```csharp
+var errors = new[] { Errors.Required("name"), Errors.Format("date", "yyyy-MM-dd") };
+var error = Errors.Aggregate(errors);
+
+error.Code;    // Aggregate
+error.Message; // "2 errors: The field 'name' is required.; The field 'date' has an invalid format. Expected: yyyy-MM-dd"
+error.Parts(); // the two errors, in the order given
+```
+
+- A single error is returned unchanged, so its own code stays visible.
+- An aggregate inside the list is replaced by its parts: an aggregate is always one level deep.
+- An empty list throws `ArgumentException`: aggregating nothing is a programming error.
+- `Parts()` on any other error returns a list holding only that error, so
+  `foreach (var part in error.Parts())` works for every error.
+- `error.Is(...)` looks at the aggregate's own code (`Aggregate`), not at its parts. To find a part,
+  search `Parts()`.
+
 ## Integration with Ave.Extensions.Functional
 
 ```csharp
@@ -153,6 +175,29 @@ var wrapped = result.WrapError(ErrorCodes.Internal._, "User lookup failed.");
 var mapped = result.MapError(e => e.With("timestamp", DateTime.UtcNow));
 ```
 
+### Mapping a list: TraverseAll
+
+`TraverseAll` applies a function that returns `Result<T, Error>` to every item of a sequence. It
+visits every item, also after a failure, and returns either all values (in input order) or one error
+built with `Errors.Aggregate`: the error itself when one item failed, an aggregate of all errors (in
+input order) when several failed.
+
+```csharp
+Result<IReadOnlyList<User>, Error> users = ids.TraverseAll(GetUser);
+
+if (users.IsFailure)
+{
+    foreach (var part in users.Error.Parts())
+    {
+        Console.WriteLine(part.Message);
+    }
+}
+```
+
+An asynchronous overload takes a `Func<T, Task<Result<TOut, Error>>>` and maps the items one after
+the other. This overload needs no `combine` argument; the general version in
+`Ave.Extensions.Functional` takes one for any error type.
+
 ## JSON Serialization
 
 ```csharp
@@ -169,6 +214,15 @@ var json = JsonSerializer.Serialize(error, options);
 // {"code":"Validation.Required","message":"The field 'email' is required.","metadata":{"field":"email"}}
 
 var deserialized = JsonSerializer.Deserialize<Error>(json, options);
+```
+
+An aggregate also writes its parts under `errors`, and reads back as an aggregate with the same
+parts:
+
+```csharp
+var aggregate = Errors.Aggregate(new[] { Errors.Validation("a"), Errors.Validation("b") });
+JsonSerializer.Serialize(aggregate, options);
+// {"code":"Aggregate","message":"2 errors: a; b","errors":[{"code":"Validation","message":"a"},{"code":"Validation","message":"b"}]}
 ```
 
 ## ASP.NET Core Integration
@@ -209,6 +263,10 @@ Custom mappings:
 ErrorCodeHttpMapping.Register(ErrorCodes.Validation._, HttpStatusCode.UnprocessableEntity);
 ```
 
+An aggregate error gets its status from its parts: their common status when they all map to the
+same one, 400 Bad Request when they are all client errors (4xx), and 500 Internal Server Error
+otherwise. A custom mapping registered for `ErrorCodes.Aggregate` overrides this rule.
+
 ### ProblemDetails
 
 ```csharp
@@ -223,6 +281,24 @@ var problemDetails = error.ToProblemDetails();
 //   "detail": "User with id '42' was not found.",
 //   "entity": "User",
 //   "id": 42
+// }
+```
+
+For an aggregate, an `errors` extension lists every part with its code, message and metadata:
+
+```csharp
+var problemDetails = Errors.Aggregate(new[] { Errors.Required("name"), Errors.Validation("Too short.") })
+    .ToProblemDetails();
+
+// {
+//   "type": "urn:error:Aggregate",
+//   "title": "Bad Request",
+//   "status": 400,
+//   "detail": "2 errors: The field 'name' is required.; Too short.",
+//   "errors": [
+//     { "code": "Validation.Required", "message": "The field 'name' is required.", "metadata": { "field": "name" } },
+//     { "code": "Validation", "message": "Too short." }
+//   ]
 // }
 ```
 
@@ -251,6 +327,12 @@ var outer = innerError.Wrap(ErrorCodes.Internal.Unexpected, "Operation failed.")
 outer.Should().HaveInnerError()
     .Which.Should().HaveCode(ErrorCodes.IO.Network);
 
+// Assert on aggregates
+aggregate.Should().BeAggregate()
+    .Which.Should().HaveCount(2);
+aggregate.Should().HavePartWithCode(ErrorCodes.Validation.Required)
+    .Which.Should().HaveMetadataEntry("field", "name");
+
 // Assert on ErrorCode properties
 var code = new ErrorCode("Validation.Required");
 code.Should().HaveValue("Validation.Required");
@@ -263,6 +345,8 @@ code.Should().HaveParent(new ErrorCode("Validation"));
 ## Well-Known Error Codes
 
 ```csharp
+ErrorCodes.Aggregate              // Aggregate (several errors, see Errors.Aggregate)
+
 ErrorCodes.Validation._           // Validation
 ErrorCodes.Validation.Required    // Validation.Required
 ErrorCodes.Validation.Format      // Validation.Format
@@ -311,6 +395,7 @@ Errors.Network(message)              // Network error
 Errors.Unexpected(message)           // Unexpected error
 Errors.Unexpected(exception)         // Unexpected error from exception
 Errors.From(code, message)           // Custom error code
+Errors.Aggregate(errors)             // Several errors as one; a single error is returned unchanged
 ```
 
 ## License
